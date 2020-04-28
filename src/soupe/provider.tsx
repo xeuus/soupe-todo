@@ -103,9 +103,6 @@ function singletonService(container: Container, service: any) {
 			enumerable: false,
 			value: service[key],
 		});
-		if (!!service.created) {
-			service.created.call(service);
-		}
 		Object.defineProperty(service, key, {
 			configurable: true,
 			enumerable: true,
