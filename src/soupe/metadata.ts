@@ -11,6 +11,7 @@ export type Metadata = Partial<{
 	order: number;
 	observables: { key: string }[];
 	persisted: { key: string }[];
+	wired: { key: string }[];
 	timers: { key: string; ms: number, options?: TimerOptions }[];
 	bus: EventBus;
 }>;

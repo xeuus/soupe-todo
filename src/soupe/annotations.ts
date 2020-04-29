@@ -1,7 +1,7 @@
 import {config, metadata, metadataOf, TimerOptions} from "./metadata";
 import {Container} from "./container";
 import {SoupeContext} from "./provider";
-import {debounce, EventBus} from "./tools";
+import {EventBus, throttle} from "./tools";
 
 // -----
 export function Bean(target: any) {
@@ -23,7 +23,7 @@ export function Observer(types?: { new(container?: Container): any }[]) {
 				component.screenWillLoad = component.screenWillLoad.bind(component);
 			}
 			component.released = false;
-			this.delayedRefresh = debounce(() => {
+			this.delayedRefresh = throttle(() => {
 				if (this.released)
 					return;
 				this.forceUpdate(() => {
@@ -31,7 +31,7 @@ export function Observer(types?: { new(container?: Container): any }[]) {
 						this.serviceDidUpdate.apply(this)
 					}
 				});
-			}, 20);
+			}, 50);
 
 			const originalComponentDidMount = this.componentDidMount;
 
@@ -89,6 +89,15 @@ export function Persisted(target: any, key: string) {
 		]
 	});
 }
+export function Wired(target: any, key: string) {
+	const {wired = []} = metadataOf(target);
+	metadata(target, {
+		wired: [
+			...wired,
+			{key}
+		]
+	});
+}
 
 export function Timer(ms: number, options?: TimerOptions) {
 	return function (target: any, key: string) {
@@ -118,13 +127,17 @@ export function Order(order: number) {
 }
 
 // -----
-export function Pick<T>(target: { new(container?: Container): T }, base: any): T {
-	const meta = metadataOf(target.prototype);
-	if(!!base.__context__) {
-		return base.__context__.services[meta.id];
+export function Pick<T>(target: { new(container?: Container): T }, base?: any): T {
+	if(!!base) {
+		const meta = metadataOf(target.prototype);
+		if (!!base.__context__) {
+			return base.__context__.services[meta.id];
+		}
+		if (!!base.context) {
+			return base.context.services[meta.id];
+		}
+		return null;
+	}else {
+		return  Object.create(target);
 	}
-	if(!!base.context) {
-		return base.context.services[meta.id];
-	}
-	return null;
 }

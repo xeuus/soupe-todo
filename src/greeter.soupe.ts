@@ -1,32 +1,23 @@
-import {Bean, Observable, Order, Pick, Timer} from "soupe/annotations";
+import {Bean, Observable, Order, Pick, Timer, Wired} from "soupe";
 
 @Bean
 @Order(10)
 export class ServiceA {
 	@Observable
 	hello: number = 10;
-
-	created() {
-
-	}
 }
 
 
 @Bean
 @Order(22)
 export class ServiceB {
-
-	b = Pick(ServiceB, this);
-
-	@Observable
-	hello: number = 10;
-
-	@Timer(1000)
+	@Wired serviceA = Pick(ServiceA);
+	@Observable hello: number = 10;
+	@Timer(10)
 	update = (date: Date) => {
-		console.log(this.b)
 		const a = Date.now() - date.getTime();
 		this.hello++;
-		if (a > 10000) {
+		if (a >= 1000) {
 			return false;
 		}
 	}

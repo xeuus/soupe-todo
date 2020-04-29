@@ -64,7 +64,6 @@ export function debounce(func: any, wait: number, options?: { leading: boolean, 
 		let timeSinceLastCall = time - lastCallTime,
 			timeSinceLastInvoke = time - lastInvokeTime,
 			result = wait - timeSinceLastCall;
-		console.log('remainingWait');
 		return maxing
 			? nativeMin(result, maxWait - timeSinceLastInvoke)
 			: result;

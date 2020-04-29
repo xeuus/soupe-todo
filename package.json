@@ -10,13 +10,11 @@
 		"@types/node": "^12.12.37",
 		"@types/react": "^16.9.34",
 		"@types/react-dom": "^16.9.7",
-		"@types/webpack-env": "^1.15.2",
-		"js-cookie": "^2.2.1",
-		"node-sass": "^4.14.0",
 		"react": "^16.13.1",
 		"react-dom": "^16.13.1",
-		"react-scripts": "3.4.1",
-		"typescript": "^3.7.5"
+		"soupe-react-scripts": "3.4.1",
+		"typescript": "^3.7.5",
+		"node-sass": "^4.14.0"
 	},
 	"scripts": {
 		"start": "react-scripts start",
@@ -27,11 +25,6 @@
 	"eslintConfig": {
 		"extends": "react-app"
 	},
-	"presets": [
-		"react",
-		"es2015",
-		"stage-1"
-	],
 	"browserslist": {
 		"production": [
 			">0.2%",

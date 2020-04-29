@@ -2,7 +2,7 @@ import {Container} from "./container";
 import {useContext, useEffect, useRef, useState} from "react";
 import {SoupeContext} from "./provider";
 import {metadataOf} from "./metadata";
-import {debounce} from "./tools";
+import {throttle} from "./tools";
 
 export function useService<T>(target: { new(container?: Container): T }): T {
 	useBus([target]);
@@ -15,15 +15,14 @@ export function useBus(types?: { new(container?: Container): any }[]) {
 	const container = useContext(SoupeContext);
 	const upd = useState(0);
 	const ref = useRef({
-		updates: 0,
 		released: false,
 		toRelease: [],
 	}).current;
-	const update = useRef(debounce(() => {
+	const update = useRef(throttle(() => {
 		if (ref.released)
 			return;
 		upd[1](a => a + 1)
-	}, 20)).current;
+	}, 50)).current;
 
 	useEffect(() => {
 		if (types && types.length > 0) {
