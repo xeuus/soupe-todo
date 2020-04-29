@@ -22,3 +22,11 @@ export class ServiceB {
 		}
 	}
 }
+
+
+@Bean
+@Order(10)
+export class ServiceC {
+	@Observable
+	hello: number = 10;
+}

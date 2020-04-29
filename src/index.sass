@@ -1,0 +1,37 @@
+*, *:after, *:before
+	box-sizing: border-box
+
+body, html
+	margin: 0
+	padding: 0
+	direction: rtl
+	height: 100vh
+	height: calc(var(--vh, 1vh) * 100)
+	font-size: 14px
+	font-weight: 400
+	line-height: 1.4
+	font-family: iranyekan, sans-serif
+	overscroll-behavior: none
+	background: transparent
+
+html
+	overflow-x: hidden
+	overflow-y: auto
+	-webkit-overflow-scrolling: touch
+	user-select: none
+
+main
+	position: relative
+	display: flex
+	flex-direction: column
+	min-height: 100%
+	&:before
+		position: fixed
+		display: block
+		content: ''
+		background: #fff
+		top: 0
+		left: 0
+		width: 100vw
+		height: 100vh
+		z-index: -10
