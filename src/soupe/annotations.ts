@@ -1,6 +1,5 @@
 import {config, metadata, metadataOf, TimerOptions} from "./metadata";
-import {Container} from "./container";
-import {SoupeContext} from "./provider";
+import {Container, SoupeContext} from "./provider";
 import {EventBus, throttle} from "./tools";
 
 // -----

@@ -1,203 +1,147 @@
-/* tslint:disable:no-increment-decrement */
-// tslint:disable-next-line:max-line-length
-const PATH_REGEXP = new RegExp(['(\\\\.)', '(?:\\:(\\w+)(?:\\(((?:\\\\.|[^\\\\()])+)\\))?|\\(((?:\\\\.|[^\\\\()])+)\\))([+*?])?'].join('|'), 'g');
-const DEFAULT_DELIMITER = '/';
-const DEFAULT_DELIMITERS = './';
-const cache: any = {};
-const cacheLimit = 10000;
-let cacheCount = 0;
-function parse(str: any, options: any) {
-  const tokens = [];
-  let key = 0;
-  let index = 0;
-  let path = '';
-  const defaultDelimiter = (options && options.delimiter) || DEFAULT_DELIMITER;
-  const delimiters = (options && options.delimiters) || DEFAULT_DELIMITERS;
-  let pathEscaped = false;
-  let res;
-  while ((res = PATH_REGEXP.exec(str)) !== null) {
-    const m = res[0];
-    const escaped = res[1];
-    const offset = res.index;
-    path += str.slice(index, offset);
-    index = offset + m.length;
-    if (escaped) {
-      path += escaped[1];
-      pathEscaped = true;
-      continue;
-    }
-    let prev = '';
-    const next = str[index];
-    const name = res[2];
-    const capture = res[3];
-    const group = res[4];
-    const modifier = res[5];
-    if (!pathEscaped && path.length) {
-      const k = path.length - 1;
-      if (delimiters.indexOf(path[k]) > -1) {
-        prev = path[k];
-        path = path.slice(0, k);
-      }
-    }
-    if (path) {
-      tokens.push(path);
-      path = '';
-      pathEscaped = false;
-    }
-    const partial = prev !== '' && next !== undefined && next !== prev;
-    const repeat = modifier === '+' || modifier === '*';
-    const optional = modifier === '?' || modifier === '*';
-    const delimiter = prev || defaultDelimiter;
-    const pattern = capture || group;
-    tokens.push({
-      delimiter,
-      optional,
-      repeat,
-      partial,
-      name: name || key++,
-      prefix: prev,
-      pattern: pattern ? escapeGroup(pattern) : `[^${escapeString(delimiter)}]+?`,
-    });
-  }
-  if (path || index < str.length) {
-    tokens.push(path + str.substr(index));
-  }
-  return tokens;
+export function decomposeUrl(url: string) {
+	const spl = url.split('?');
+	return {
+		pathname: removeTrailingSlash(spl[0]),
+		search: spl[1] ? `?${spl[1]}` : '',
+	}
 }
-function escapeString(str: any) {
-  return str.replace(/([.+*?=^!:${}()[\]|/\\])/g, '\\$1');
+
+export function removeTrailingSlash(path: string) {
+	return path.replace(/\/$/, '');
 }
-function escapeGroup(group: any) {
-  return group.replace(/([=!:$/()])/g, '\\$1');
+
+export function serializeQuery(payload: any): string {
+	if (!payload) {
+		return '';
+	}
+	return `?${convertData(payload)}`;
 }
-function flags(options: any) {
-  return options && options.sensitive ? '' : 'i';
+
+export function deserializeQuery(search: string): any {
+	let query = search;
+	if (query) {
+		if (query.charAt(0) === '?') {
+			query = search.substr(1);
+		}
+		if (query.length > 0) {
+			return parseBlock(query);
+		}
+	}
+	return {};
 }
-function regexpToRegexp(path: any, keys: any) {
-  if (!keys) return path;
-  // Use a negative lookahead to match only capturing groups.
-  const groups = path.source.match(/\((?!\?)/g);
-  if (groups) {
-    for (let i = 0; i < groups.length; i++) {
-      keys.push({
-        name: i,
-        prefix: null,
-        delimiter: null,
-        optional: false,
-        repeat: false,
-        partial: false,
-        pattern: null,
-      });
-    }
-  }
-  return path;
+
+function check(value: any) {
+	if (typeof value === 'undefined') {
+		return;
+	}
+	if (typeof value === 'string') {
+		if (value.length < 1) {
+			return;
+		}
+		return encodeURIComponent(value);
+	}
+	if (typeof value === 'number') {
+		return value;
+	}
+	if (typeof value === 'boolean') {
+		return value ? 'true' : 'false';
+	}
+	if (value === null) {
+		return 'null';
+	}
 }
-function arrayToRegexp(path: any, keys: any, options: any): RegExp {
-  const parts = [];
-  for (let i = 0; i < path.length; i++) {
-    parts.push(pathToRegexp(path[i], keys, options).source);
-  }
-  return new RegExp(`(?:${parts.join('|')})`, flags(options));
+
+function convertData(data: any) {
+	return Object.keys(data).reduce((acc, key) => {
+		const value = data[key];
+		if (typeof value === 'string') {
+			if (value.length < 1) {
+				return acc;
+			}
+			acc.push(`${key}=${encodeURIComponent(value)}`);
+			return acc;
+		}
+		if (typeof value === 'number') {
+			acc.push(`${key}=${value}`);
+			return acc;
+		}
+		if (typeof value === 'boolean') {
+			acc.push(`${key}=${value ? 'true' : 'false'}`);
+			return acc;
+		}
+		if (typeof value === 'object') {
+			if (value === null) {
+				acc.push(`${key}=null`);
+				return acc;
+			}
+			if (Array.isArray(value)) {
+				for (let i = 0; i < value.length; i += 1) {
+					const v = check(value[i]);
+					if (v) {
+						acc.push(`${key}[${i}]=${v}`);
+					}
+				}
+			}
+		}
+		return acc;
+	}, []).join('&');
 }
-function stringToRegexp(path: any, keys: any, options: any) {
-  return tokensToRegExp(parse(path, options), keys, options);
-}
-function tokensToRegExp(tokens: any, keys: any, options: any = {}) {
-  const strict = options.strict;
-  const start = options.start !== false;
-  const end = options.end !== false;
-  const delimiter = escapeString(options.delimiter || DEFAULT_DELIMITER);
-  const delimiters = options.delimiters || DEFAULT_DELIMITERS;
-  const endsWith = [].concat(options.endsWith || []).map(escapeString).concat('$').join('|');
-  let route = start ? '^' : '';
-  let isEndDelimited = tokens.length === 0;
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
-    if (typeof token === 'string') {
-      route += escapeString(token);
-      isEndDelimited = i === tokens.length - 1 && delimiters.indexOf(token[token.length - 1]) > -1;
-    } else {
-      const capture = token.repeat
-        ? `(?:${token.pattern})(?:${escapeString(token.delimiter)}(?:${token.pattern}))*`
-        : token.pattern;
-      if (keys) keys.push(token);
-      if (token.optional) {
-        if (token.partial) {
-          route += `${escapeString(token.prefix)}(${capture})?`;
-        } else {
-          route += `(?:${escapeString(token.prefix)}(${capture}))?`;
-        }
-      } else {
-        route += `${escapeString(token.prefix)}(${capture})`;
-      }
-    }
-  }
-  if (end) {
-    if (!strict) route += `(?:${delimiter})?`;
-    route += endsWith === '$' ? '$' : `(?=${endsWith})`;
-  } else {
-    if (!strict) route += `(?:${delimiter}(?=${endsWith}))?`;
-    if (!isEndDelimited) route += `(?=${delimiter}|${endsWith})`;
-  }
-  return new RegExp(route, flags(options));
-}
-function pathToRegexp(path: any, keys: any, options: any) {
-  if (path instanceof RegExp) {
-    return regexpToRegexp(path, keys);
-  }
-  if (Array.isArray(path)) {
-    return arrayToRegexp(path, keys, options);
-  }
-  return stringToRegexp(path, keys, options);
-}
-function compilePath(path: any, options: any) {
-  const cacheKey = `${options.end}${options.strict}${options.sensitive}`;
-  const pathCache = cache[cacheKey] || (cache[cacheKey] = {});
-  if (pathCache[path]) return pathCache[path];
-  const keys: any = [];
-  const regexp = pathToRegexp(path, keys, options);
-  const result = {regexp, keys};
-  if (cacheCount < cacheLimit) {
-    pathCache[path] = result;
-    cacheCount++;
-  }
-  return result;
-}
-export interface IOptions {
-  path: string;
-  exact?: boolean;
-  strict?: boolean;
-  sensitive?: boolean;
-}
-export interface IMatch {
-  path: string;
-  url: string;
-  isExact: boolean;
-  params: { [key: string]: string };
-}
-export function match(uri: string, options: IOptions): IMatch {
-  const {path, exact = false, strict = false, sensitive = false} = options;
-  const paths = [].concat(path);
-  return paths.reduce((matched, path) => {
-    if (matched) return matched;
-    const {regexp, keys} = compilePath(path, {
-      strict,
-      sensitive,
-      end: exact,
-    });
-    const match = regexp.exec(uri);
-    if (!match) return null;
-    const [url, ...values] = match;
-    const isExact = uri === url;
-    if (exact && !isExact) return null;
-    return {
-      isExact,
-      path,
-      url: path === '/' && url === '' ? '/' : url,
-      params: keys.reduce((memo: any, key: any, index: string) => {
-        memo[key.name] = values[index];
-        return memo;
-      }, {}),
-    };
-  }, null);
+
+function parseBlock(block: string) {
+	const obj = {} as any;
+	let ks = 0;
+	let ke = 0;
+	let ve = 0;
+	let j = 0;
+	for (let i = 0; i < block.length; i += 1) {
+		const c = block.charAt(i);
+		if (c === '=') {
+			ke = i;
+			const key = block.substring(ks, ke);
+			for (j = i + 1; j <= block.length; j += 1, i += 1) {
+				const char = block.charAt(j);
+				if (char === '&' || j === block.length) {
+					ve = j;
+					ks = j + 1;
+					let v = block.substring(ke + 1, ve);
+					if (v === 'null') {
+						obj[key] = null;
+					} else if (v === 'true') {
+						obj[key] = true;
+					} else if (v === 'false') {
+						obj[key] = false;
+					} else {
+						v = decodeURIComponent(v);
+						const num = /^[+-]?([0-9]*[.])?[0-9]+$/.test(v);
+						if (!num) {
+							obj[key] = v;
+						} else {
+							const num = parseFloat(v);
+							if (!isNaN(num) && !(v.startsWith('0') && v.includes('.'))) {
+								obj[key] = num;
+							} else {
+								obj[key] = v;
+							}
+						}
+					}
+					break;
+				}
+			}
+		}
+	}
+	return Object.keys(obj).reduce((acc, key) => {
+		const idx = key.indexOf('[');
+		if (idx > -1) {
+			const nextIdx = key.indexOf(']', idx);
+			if (nextIdx > -1) {
+				const k = key.substring(0, idx);
+				const i = +key.substring(idx + 1, nextIdx);
+				acc[k] = acc[k] || [];
+				acc[k][i] = obj[key];
+			}
+			return acc;
+		}
+		acc[key] = obj[key];
+		return acc;
+	}, {} as any);
 }

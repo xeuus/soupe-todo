@@ -1,6 +1,5 @@
-import {Container} from "./container";
 import {useContext, useEffect, useRef, useState} from "react";
-import {SoupeContext} from "./provider";
+import {Container, SoupeContext} from "./provider";
 import {metadataOf} from "./metadata";
 import {throttle} from "./tools";
 
@@ -38,7 +37,6 @@ export function useBus(types?: { new(container?: Container): any }[]) {
 			});
 		}
 		return () => {
-			console.log('disconnected');
 			ref.released = true;
 			ref.toRelease.forEach(func => func());
 		}

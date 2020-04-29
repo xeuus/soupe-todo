@@ -1,19 +1,21 @@
 import React, {createContext, ReactNode} from "react";
-import {Container} from "./container";
 import {config, metadataOf} from "./metadata";
 
+export type Container = {
+	services?: any[];
+};
 export const SoupeContext = createContext<Container>({} as Container);
 export const SoupeConsumer = SoupeContext.Consumer;
 
-export function SoupeProvider(props: { container: Container; children: ReactNode }) {
+export function SoupeProvider(props: { soupe: Container; children: ReactNode }) {
     return (
-        <SoupeContext.Provider value={props.container}>
+        <SoupeContext.Provider value={props.soupe}>
             {props.children}
         </SoupeContext.Provider>
     );
 }
 
-export function createContainer(services?: any): Container {
+export function createSoupe(services?: any): Container {
     if (!!services) {
         const cache: any = {};
         services.keys().forEach((key: any) => cache[key] = services(key));
