@@ -1,23 +1,27 @@
-import {Bean, Observable, Order, Pick, Timer, Wired} from "soupe";
+import {Bean, Observable, Pick, Timer, Wired} from "soupe";
+import {Navigation} from "soupe-navigation";
+import {Persisted} from "./soupe-persist";
 
 @Bean
-@Order(10)
+export class Router {
+	navigation: Navigation = null;
+}
+
+@Bean
 export class ServiceA {
-	@Observable
-	hello: number = 10;
+	@Persisted @Observable hello: number = 0;
 }
 
 
 @Bean
-@Order(22)
 export class ServiceB {
 	@Wired serviceA = Pick(ServiceA);
-	@Observable hello: number = 10;
-	@Timer(10)
+	@Observable hello: number = 0;
+	@Timer(20)
 	update = (date: Date) => {
 		const a = Date.now() - date.getTime();
 		this.hello++;
-		if (a >= 1000) {
+		if (a > 200) {
 			return false;
 		}
 	}
@@ -25,8 +29,6 @@ export class ServiceB {
 
 
 @Bean
-@Order(10)
 export class ServiceC {
-	@Observable
-	hello: number = 10;
+	@Persisted @Observable hello: number = 0;
 }

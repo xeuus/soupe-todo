@@ -1,5 +1,5 @@
 import {config, metadata, metadataOf, TimerOptions} from "./metadata";
-import {Container, SoupeContext} from "./provider";
+import {Soupe, SoupeContext} from "./provider";
 import {EventBus, throttle} from "./tools";
 
 // -----
@@ -11,10 +11,10 @@ export function Bean(target: any) {
 }
 
 // -----
-export function Observer(types?: { new(container?: Container): any }[]) {
+export function Observer(types?: { new(container?: Soupe): any }[]) {
 	return function (target: any) {
 		const original = target;
-		const func = function (props: any, container: Container) {
+		const func = function (props: any, container: Soupe) {
 			const component = this;
 
 			const toRelease: any[] = [];
@@ -79,15 +79,6 @@ export function Observable(target: any, key: string) {
 	});
 }
 
-export function Persisted(target: any, key: string) {
-	const {persisted = []} = metadataOf(target);
-	metadata(target, {
-		persisted: [
-			...persisted,
-			{key}
-		]
-	});
-}
 export function Wired(target: any, key: string) {
 	const {wired = []} = metadataOf(target);
 	metadata(target, {
@@ -126,7 +117,7 @@ export function Order(order: number) {
 }
 
 // -----
-export function Pick<T>(target: { new(container?: Container): T }, base?: any): T {
+export function Pick<T>(target: { new(container?: Soupe): T }, base?: any): T {
 	if(!!base) {
 		const meta = metadataOf(target.prototype);
 		if (!!base.__context__) {

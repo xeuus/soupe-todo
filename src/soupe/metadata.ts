@@ -10,10 +10,10 @@ export type Metadata = Partial<{
 	id: number;
 	order: number;
 	observables: { key: string }[];
-	persisted: { key: string }[];
 	wired: { key: string }[];
 	timers: { key: string; ms: number, options?: TimerOptions }[];
 	bus: EventBus;
+	[key: string]: any;
 }>;
 
 export function metadataOf(target: any): Metadata {

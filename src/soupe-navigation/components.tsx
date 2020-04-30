@@ -1,4 +1,4 @@
-import React, {createContext, ReactElement, ReactNode, useContext} from "react";
+import React, {createContext, ReactNode, useContext} from "react";
 import {NavigationContext} from "./provider";
 
 type Context = {
@@ -31,7 +31,7 @@ export function Variant(props: { children?: ReactNode; name: string }) {
 	);
 }
 
-export function Route(props: { children?: ReactNode; name: string; path: string, component?: ReactElement }) {
+export function Route(props: { children?: ReactNode; name: string; path: string, component?: any }) {
 	const context = useContext(RouteContext);
 	const nav = useContext(NavigationContext);
 	nav.blueprints.push({

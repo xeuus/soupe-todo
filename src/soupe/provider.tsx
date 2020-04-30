@@ -1,13 +1,14 @@
 import React, {createContext, ReactNode} from "react";
 import {config, metadataOf} from "./metadata";
 
-export type Container = {
+export type Soupe = {
 	services?: any[];
+	pick<T>(target: { new(container?: Soupe): T }): T;
 };
-export const SoupeContext = createContext<Container>({} as Container);
+export const SoupeContext = createContext<Soupe>({} as Soupe);
 export const SoupeConsumer = SoupeContext.Consumer;
 
-export function SoupeProvider(props: { soupe: Container; children: ReactNode }) {
+export function SoupeProvider(props: { soupe: Soupe; children: ReactNode }) {
     return (
         <SoupeContext.Provider value={props.soupe}>
             {props.children}
@@ -15,20 +16,24 @@ export function SoupeProvider(props: { soupe: Container; children: ReactNode }) 
     );
 }
 
-export function createSoupe(services?: any): Container {
+export function createSoupe(services?: any): Soupe {
     if (!!services) {
         const cache: any = {};
         services.keys().forEach((key: any) => cache[key] = services(key));
     }
-    const container: Container = {};
+    const container: Soupe = {} as Soupe;
     container.services = config.services.map(cls => Object.create(cls.prototype));
     for (let i = 0; i < container.services.length; i++) {
         singletonService(container, container.services[i]);
     }
+    container.pick = (target)=>{
+		const meta = metadataOf(target.prototype);
+		return container.services[meta.id];
+	};
     return container;
 }
 
-function singletonService(container: Container, service: any) {
+function singletonService(container: Soupe, service: any) {
     const {bus, observables = [], timers = [], wired = []} = metadataOf(service);
     Object.defineProperty(service, '__context__', {
         value: container,

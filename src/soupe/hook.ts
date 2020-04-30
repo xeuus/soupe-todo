@@ -1,16 +1,16 @@
 import {useContext, useEffect, useRef, useState} from "react";
-import {Container, SoupeContext} from "./provider";
+import {Soupe, SoupeContext} from "./provider";
 import {metadataOf} from "./metadata";
 import {throttle} from "./tools";
 
-export function useService<T>(target: { new(container?: Container): T }): T {
+export function useService<T>(target: { new(container?: Soupe): T }): T {
 	useBus([target]);
 	const container = useContext(SoupeContext);
 	const meta = metadataOf(target.prototype);
 	return container ? container.services[meta.id] : null;
 }
 
-export function useBus(types?: { new(container?: Container): any }[]) {
+export function useBus(types?: { new(container?: Soupe): any }[]) {
 	const container = useContext(SoupeContext);
 	const upd = useState(0);
 	const ref = useRef({
