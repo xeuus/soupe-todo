@@ -1,6 +1,6 @@
-import {metadataOf, metadata} from "soupe";
+import {metadataOf, metadata} from "react-soa";
 
-export function Persisted(target: any, key: string) {
+export function persisted(target: any, key: string) {
 	const {persisted = []} = metadataOf(target);
 	metadata(target, {
 		persisted: [

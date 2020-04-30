@@ -1,10 +1,9 @@
 import React, {createContext, ReactNode, useContext} from "react";
-import {NavigationContext} from "./provider";
+import {ABContext} from "./provider";
 
 type Context = {
 	experiment: string;
 	variant: string;
-
 }
 const RouteContext = createContext<Partial<Context>>({});
 
@@ -33,7 +32,7 @@ export function Variant(props: { children?: ReactNode; name: string }) {
 
 export function Route(props: { children?: ReactNode; name: string; path: string, component?: any }) {
 	const context = useContext(RouteContext);
-	const nav = useContext(NavigationContext);
+	const nav = useContext(ABContext);
 	nav.blueprints.push({
 		name: props.name,
 		path: props.path,

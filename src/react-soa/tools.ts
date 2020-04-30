@@ -3,6 +3,17 @@ const nativeMin = Math.min;
 export type Listener = (...args: any[]) => any;
 export type Unsubscribe = () => any;
 
+export async function delay(ms: number) {
+	await new Promise((a) => setTimeout(a, ms));
+}
+
+export function timeout<T>(promise: Promise<T>, ms: number, error?: any): Promise<T> {
+	return Promise.race<T>([
+		promise,
+		new Promise<T>((resolve, reject) => setTimeout(() => reject(error || new Error("timeout exceeded")), ms)),
+	]);
+}
+
 export class EventBus {
 	listeners: Listener[] = [];
 	dispatch = (...args: any[]) => {
@@ -16,7 +27,9 @@ export class EventBus {
 	};
 }
 
-export function debounce(func: any, wait: number, options?: { leading: boolean, trailing: boolean, maxWait: number }) {
+export type DebounceOptions = { leading: boolean, trailing: boolean, maxWait: number };
+
+export function debounce(func: any, wait: number, options?: Partial<DebounceOptions>) {
 	let timerId: any;
 	let lastArgs: any;
 	let lastThis: any;
@@ -137,7 +150,9 @@ export function debounce(func: any, wait: number, options?: { leading: boolean, 
 	return debounced;
 }
 
-export function throttle(func: any, wait: number, options?: { leading: boolean, trailing: boolean }) {
+export type ThrottleOptions = { leading: boolean, trailing: boolean, maxWait: number };
+
+export function throttle(func: any, wait: number, options?: Partial<ThrottleOptions>) {
 	let leading = true,
 		trailing = true;
 

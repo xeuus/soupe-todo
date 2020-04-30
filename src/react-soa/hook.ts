@@ -1,17 +1,17 @@
 import {useContext, useEffect, useRef, useState} from "react";
-import {Soupe, SoupeContext} from "./provider";
+import {Soa, SoaContext} from "./provider";
 import {metadataOf} from "./metadata";
 import {throttle} from "./tools";
 
-export function useService<T>(target: { new(container?: Soupe): T }): T {
+export function useService<T>(target: { new(container?: Soa): T }): T {
 	useBus([target]);
-	const container = useContext(SoupeContext);
+	const container = useContext(SoaContext);
 	const meta = metadataOf(target.prototype);
 	return container ? container.services[meta.id] : null;
 }
 
-export function useBus(types?: { new(container?: Soupe): any }[]) {
-	const container = useContext(SoupeContext);
+export function useBus(types?: { new(container?: Soa): any }[]) {
+	const container = useContext(SoaContext);
 	const upd = useState(0);
 	const ref = useRef({
 		released: false,
@@ -27,8 +27,8 @@ export function useBus(types?: { new(container?: Soupe): any }[]) {
 		if (types && types.length > 0) {
 			types.forEach(typ => {
 				const {id} = metadataOf(typ.prototype);
-				const {bus} = metadataOf(container.services[id]);
-				const listener = bus.listen(() => {
+				const {channel} = metadataOf(container.services[id]);
+				const listener = channel.listen(() => {
 					if (ref.released || !update)
 						return;
 					update();

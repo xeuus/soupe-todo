@@ -11,7 +11,7 @@ export function removeTrailingSlash(path: string) {
 }
 
 export function serializeQuery(payload: any): string {
-	if (!payload) {
+	if (!payload || Object.keys(payload).length < 1) {
 		return '';
 	}
 	return `?${convertData(payload)}`;

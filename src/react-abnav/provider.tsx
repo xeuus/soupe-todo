@@ -1,8 +1,8 @@
 import React, {createContext, ReactNode, useContext, useEffect, useState} from "react";
 
 import {Action, History, Location} from "history";
-import {EventBus} from "../soupe";
-import {deserializeQuery, removeTrailingSlash, serializeQuery} from "./match";
+import {EventBus, optional} from "../react-soa";
+import {deserializeQuery, removeTrailingSlash, serializeQuery} from "./tools";
 
 export type RoutingState = {
 	location: Location;
@@ -18,7 +18,7 @@ export type Blueprint = {
 	component: any;
 	children: any;
 }
-export type Navigation = {
+export type Nav = {
 	history: History;
 	state: RoutingState,
 	goto(name: string, params?: { [key: string]: any });
@@ -28,11 +28,12 @@ export type Navigation = {
 	blueprints: Blueprint[],
 	preference: { [key: string]: string };
 	default?: string;
+	getBlueprint?(name: string): Blueprint;
+	indexOf?(name: string): number;
 };
-export const NavigationContext = createContext<Navigation>({} as Navigation);
+export const ABContext = createContext<Nav>({} as Nav);
 
-
-export function deferRoute(b: Blueprint) {
+function deferRoute(b: Blueprint) {
 	if (!b)
 		return '';
 	let path = '';
@@ -46,15 +47,15 @@ export function deferRoute(b: Blueprint) {
 	return `${removeTrailingSlash(path)}/`;
 }
 
-function inferRoute(nav: Navigation, useDefault?: boolean): number {
+function inferRoute(nav: Nav, useDefault?: boolean): number {
 	let index = nav.blueprints.findIndex(blueprint => deferRoute(blueprint) === nav.state.location.pathname);
 	if (index < 0 && useDefault) {
-		index = findBlueprint(nav, nav.default, true) as number
+		index = nav.indexOf(nav.default)
 	}
 	return index;
 }
 
-function setHistory(method: string, nav: Navigation, found: Blueprint, params: any) {
+function setHistory(method: string, nav: Nav, found: Blueprint, params: any) {
 	if (found) {
 		const pathnameInStore = deferRoute(found);
 		const searchInStore = typeof params === 'string' ? params : typeof params === 'object' ? serializeQuery(params) : '';
@@ -72,33 +73,14 @@ function setHistory(method: string, nav: Navigation, found: Blueprint, params: a
 	}
 }
 
-export function findBlueprint(nav: Navigation, name: string, useIndex?: boolean) {
-	for (let i = 0; i < nav.blueprints.length; i++) {
-		const blueprint = nav.blueprints[i];
-		if (blueprint.name === name) {
-			if (!blueprint.experiment) {
-				return useIndex ? i : blueprint;
-			}
-			const preferredVariant = nav.preference[blueprint.experiment];
-			if (!preferredVariant) {
-				return useIndex ? i : blueprint;
-			}
-			if (blueprint.variant === preferredVariant) {
-				return useIndex ? i : blueprint;
-			}
-		}
-	}
-	return useIndex ? -1 : null;
-}
-
 function Handler() {
-	const nav = useContext(NavigationContext);
+	const nav = useContext(ABContext);
 	const search = useState<string>(nav.history.location.search);
 	const [state, setState] = useState<number>(inferRoute(nav, true));
 	useEffect(() => {
-		const def = findBlueprint(nav, nav.default, true);
+		const def = nav.indexOf(nav.default);
 
-		if(state > -1) {
+		if (state > -1) {
 			if (def > -1 && def === state) {
 				setHistory('replace', nav, nav.blueprints[def], nav.state.location.search);
 			}
@@ -113,7 +95,7 @@ function Handler() {
 			}
 			nav.state = {location, action, isFirstRendering};
 			const ifr = inferRoute(nav);
-			if(ifr > -1) {
+			if (ifr > -1) {
 				setState(ifr);
 				nav.bus.dispatch('update', nav.blueprints[ifr].name, {});
 			}
@@ -121,7 +103,7 @@ function Handler() {
 		handleLocationChange(nav.history.location, nav.history.action, true);
 		const release1 = nav.bus.listen((method: string, name: any, params?: { [key: string]: any }) => {
 			if (method !== 'update') {
-				const found = findBlueprint(nav, name) as Blueprint;
+				const found = nav.getBlueprint(name) as Blueprint;
 				setHistory(method, nav, found, params);
 			}
 		});
@@ -136,24 +118,24 @@ function Handler() {
 		return null;
 	}
 	const b = nav.blueprints[state];
-	if(typeof b.component === 'function'){
+	if (typeof b.component === 'function') {
 		return React.createElement(b.component, {});
 	}
 	return b.children;
 }
 
-export function NavigationProvider(props: { navigation: Navigation; children: ReactNode }) {
+export function NavProvider(props: { navigation: Nav; children: ReactNode }) {
 	return (
-		<NavigationContext.Provider value={props.navigation}>
+		<ABContext.Provider value={props.navigation}>
 			{props.children}
 			<Handler/>
-		</NavigationContext.Provider>
+		</ABContext.Provider>
 	);
 }
 
-export function createNavigation(history: History) {
+export function createNav(history: History, options?: Partial<{ default: string, preference: { [key: string]: string } }>) {
 	const bus = new EventBus();
-	const navigation: Navigation = {
+	const navigation: Nav = {
 		blueprints: [],
 		query: {},
 		history,
@@ -165,8 +147,29 @@ export function createNavigation(history: History) {
 		},
 		goto: (path, params) => bus.dispatch('push', path, params),
 		replace: (path, params) => bus.dispatch('replace', path, params),
-		preference: {},
+		preference: optional(() => options.preference, {}),
+		default: optional(() => options.default),
 	};
+	function find(name: string): [number, Blueprint]{
+		for (let i = 0; i < navigation.blueprints.length; i++) {
+			const blueprint = navigation.blueprints[i];
+			if (blueprint.name === name) {
+				if (!blueprint.experiment) {
+					return [i, blueprint];
+				}
+				const preferredVariant = navigation.preference[blueprint.experiment];
+				if (!preferredVariant) {
+					return [i, blueprint];
+				}
+				if (blueprint.variant === preferredVariant) {
+					return [i, blueprint];
+				}
+			}
+		}
+		return [-1, null];
+	}
+	navigation.getBlueprint = (name: string) => find(name)[1];
+	navigation.indexOf = (name: string) => find(name)[0];
 	return navigation;
 }
 

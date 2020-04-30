@@ -1,32 +1,21 @@
-import React, {StrictMode} from 'react';
+import React, {PureComponent, StrictMode} from 'react';
 import ReactDOM from 'react-dom';
-import {createSoupe, SoupeProvider, startTimer, useService} from "soupe";
-import {createNavigation, Experiment, NavigationProvider, NavLink, Route, Variant} from "soupe-navigation";
+import {createSoa, Observer, pick, SoaProvider, useService, wired} from "react-soa";
+import {createNav, Experiment, NavProvider, NavLink, Route, Variant} from "ab-nav";
+import {automaticPersist, getSnapshot, restoreSnapshot} from "soa-persist/provider";
+import {Router, ServiceA, ServiceB, ServiceC, ServiceD} from "./greeter.soupe";
 import {createHashHistory} from "history";
-import {Router, ServiceA, ServiceB, ServiceC} from "./greeter.soupe";
 import {register} from './service-worker';
 
 import './index.sass';
 import './greeter.soupe';
-import {getSnapshot, restoreSnapshot} from "./soupe-persist/provider";
+import './net.soupe';
 
 const history = createHashHistory();
-const soupe = createSoupe();
+const soupe = createSoa();
 const defaultState = getSnapshot(soupe);
-restoreSnapshot(soupe, JSON.parse(localStorage.getItem('data') || '{}'));
-['blur', 'visibilitychange', 'pagehide', 'freeze'].forEach((type) => {
-	window.addEventListener(type, ()=>{
-		console.log(type + ': saving...');
-		localStorage.setItem('data', JSON.stringify(getSnapshot(soupe)))
-	}, {capture: true});
-});
-const win = window as any;
-soupe.services.forEach(a => {
-	win.__services = win.__services || {};
-	win.__services[a.constructor.name] = a;
-});
-const navigation = soupe.pick(Router).navigation = createNavigation(history);
-navigation.default = 'home';
+automaticPersist(soupe, localStorage.getItem('data'), (data) => localStorage.setItem('data', data));
+const navigation = soupe.pick(Router).navigation = createNav(history, {default: 'login-otp'});
 
 
 function BundleA() {
@@ -41,7 +30,7 @@ function BundleA() {
 function BundleB() {
 	const a = useService(ServiceB);
 	return (
-		<button onClick={() => startTimer(a.update)}>
+		<button onClick={a.run}>
 			hello = {a.hello}
 		</button>
 	)
@@ -56,10 +45,23 @@ function BundleC() {
 	)
 }
 
+@Observer([ServiceB]) export class BundleD extends PureComponent {
+	@wired svcB = pick(ServiceB);
+	@wired svc = pick(ServiceD);
+
+	render() {
+		return (
+			<button onClick={this.svc.change}>
+				go back {this.svcB.hello}
+			</button>
+		)
+	}
+}
+
 ReactDOM.render(
 	<StrictMode>
-		<SoupeProvider soupe={soupe}>
-			<NavigationProvider navigation={navigation}>
+		<SoaProvider soa={soupe}>
+			<NavProvider navigation={navigation}>
 				<div className="tab-container">
 					<NavLink name="login-otp" className="link-item">OTP</NavLink>
 					<NavLink name="login-password" className="link-item">PASSWORD</NavLink>
@@ -88,12 +90,13 @@ ReactDOM.render(
 				</Experiment>
 				<Route name="temp" path="/temp/salam/">
 					<div className="App">
-						<BundleC/>
+						<BundleD/>
 					</div>
 				</Route>
-			</NavigationProvider>
-		</SoupeProvider>
+			</NavProvider>
+		</SoaProvider>
 	</StrictMode>,
 	document.getElementById('root')
 );
+
 register();

@@ -1,9 +1,9 @@
 import React, {AnchorHTMLAttributes, useContext, useEffect, useState} from "react";
-import {NavigationContext} from "./index";
+import {ABContext} from "./index";
 
 export function NavLink(props: { name: string; activeClassName?: string; } & AnchorHTMLAttributes<HTMLAnchorElement>) {
 	const {name, children, className, activeClassName = 'active', ...rest} = props;
-	const nav = useContext(NavigationContext);
+	const nav = useContext(ABContext);
 	const [active, setActive] = useState(false);
 	useEffect(() => {
 		return nav.bus.listen((method: string, name: any) => {
@@ -22,7 +22,7 @@ export function NavLink(props: { name: string; activeClassName?: string; } & Anc
 
 export function Link(props: { name: string; } & AnchorHTMLAttributes<HTMLAnchorElement>) {
 	const {name, children, ...rest} = props;
-	const nav = useContext(NavigationContext);
+	const nav = useContext(ABContext);
 	return (
 		// eslint-disable-next-line jsx-a11y/anchor-is-valid
 		<a href="#" onClick={(e) => {

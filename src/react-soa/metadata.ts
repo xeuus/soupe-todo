@@ -1,18 +1,20 @@
-import {EventBus} from "./tools";
+import {DebounceOptions, EventBus, ThrottleOptions} from "./tools";
 
 export const config = {
 	counter: 0,
 	services: [] as any[],
 };
 
-export type TimerOptions = { immediate: boolean; name: string };
+export type TimerOptions = { stopped: boolean; name: string; count: number; single: boolean };
 export type Metadata = Partial<{
 	id: number;
 	order: number;
 	observables: { key: string }[];
 	wired: { key: string }[];
-	timers: { key: string; ms: number, options?: TimerOptions }[];
-	bus: EventBus;
+	debounceFunctions: {key: string, ms: number; options?: Partial<DebounceOptions>}[];
+	throttleFunctions: {key: string, ms: number; options?: Partial<ThrottleOptions>}[];
+	timers: { key: string; ms: number, options?: Partial<TimerOptions> }[];
+	channel: EventBus;
 	[key: string]: any;
 }>;
 
