@@ -1,5 +1,5 @@
 import {Bean, delay, leading, observable, pick, Service, timer, wired} from "react-soa";
-import {Nav} from "ab-nav";
+import {Nav} from "soa-nav";
 import {persisted} from "soa-persist";
 import {Net} from "./net.soupe";
 
@@ -67,7 +67,7 @@ export class ServiceD extends Service {
 	@leading(500)
 	change = async () => {
 		console.log(await this.net.GET('/v1/stat/active-cities'));
-		this.broadcast('message broker');
-		await this.invokeParallel('whatTheFuck', 'aryan')
+		this.context.broadcast('message broker');
+		await this.context.invokeParallel('whatTheFuck', 'aryan')
 	};
 }

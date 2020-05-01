@@ -1,17 +1,17 @@
 import React, {PureComponent, StrictMode} from 'react';
 import ReactDOM from 'react-dom';
 import {createSoa, Observer, pick, SoaProvider, useService, wired} from "react-soa";
-import {createNav, Experiment, NavProvider, NavLink, Route, Variant} from "ab-nav";
+import {createNav, Experiment, NavProvider, NavLink, Route, Variant} from "soa-nav";
 import {automaticPersist, getSnapshot, restoreSnapshot} from "soa-persist/provider";
 import {Router, ServiceA, ServiceB, ServiceC, ServiceD} from "./greeter.soupe";
-import {createHashHistory} from "history";
+import {createMemoryHistory} from "history";
 import {register} from './service-worker';
 
 import './index.sass';
 import './greeter.soupe';
 import './net.soupe';
 
-const history = createHashHistory();
+const history = createMemoryHistory();
 const soupe = createSoa();
 const defaultState = getSnapshot(soupe);
 automaticPersist(soupe, localStorage.getItem('data'), (data) => localStorage.setItem('data', data));

@@ -1,13 +1,20 @@
 import React, {createContext, ReactNode} from "react";
 import {config, metadataOf} from "./metadata";
 import {debounce, EventBus, throttle} from "./tools";
-import {invokeAll} from "./service";
+import {invoke, invokeAll} from "./invoke";
 
 export type Soa = {
 	channel: EventBus;
 	services?: any[];
 	pick<T>(target: { new(container?: Soa): T }): T;
+	broadcast(...args: any[]);
+	invoke(target: any, name: string, ...args: any[]): Promise<any>;
+	invokeAll(name: string, ...args: any[]): Promise<any>;
+	invokeParallel(name: string, ...args: any[]): Promise<any>;
+	invokeRace(name: string, ...args: any[]): Promise<any>;
+	invokeLinear(name: string, ...args: any[]): Promise<any>;
 };
+
 export const SoaContext = createContext<Soa>({} as Soa);
 export const SoaConsumer = SoaContext.Consumer;
 
@@ -34,7 +41,13 @@ export function createSoa(services?: any): Soa {
 		const meta = metadataOf(target.prototype);
 		return container.services[meta.id];
 	};
-	invokeAll(container, 'linear', 'created');
+	container.broadcast = (...args) => container.channel.dispatch(...args);
+	container.invoke = async (target, name,...args) => await invoke(container, target, name, ...args);
+	container.invokeAll = async (name, ...args) => await invokeAll(container, 'all', name, ...args);
+	container.invokeLinear = async (name, ...args) => await invokeAll(container, 'linear', name, ...args);
+	container.invokeParallel = async (name, ...args) => await invokeAll(container, 'parallel', name, ...args);
+	container.invokeRace = async (name, ...args) => await invokeAll(container, 'race', name, ...args);
+	container.invokeLinear('created');
 	return container;
 }
 
